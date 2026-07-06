@@ -198,13 +198,13 @@ public class GeometrySerializer extends ValueSerializer<Geometry> {
         generator.writeStringProperty(Field.TYPE, type.toString());
 
         if (this.includeBoundingBox.shouldIncludeBoundingBoxFor(type) && !geometry.isEmpty()) {
-            var decimalFormat = this.decimalFormat.get();
+            var df = this.decimalFormat.get();
             Envelope envelope = geometry.getEnvelopeInternal();
             generator.writeArrayPropertyStart(Field.BOUNDING_BOX);
-            generator.writeNumber(decimalFormat.format(envelope.getMinX()));
-            generator.writeNumber(decimalFormat.format(envelope.getMinY()));
-            generator.writeNumber(decimalFormat.format(envelope.getMaxX()));
-            generator.writeNumber(decimalFormat.format(envelope.getMaxY()));
+            generator.writeNumber(df.format(envelope.getMinX()));
+            generator.writeNumber(df.format(envelope.getMinY()));
+            generator.writeNumber(df.format(envelope.getMaxX()));
+            generator.writeNumber(df.format(envelope.getMaxY()));
             generator.writeEndArray();
         }
     }
@@ -240,11 +240,11 @@ public class GeometrySerializer extends ValueSerializer<Geometry> {
 
     private void serializeCoordinate(Coordinate value, JsonGenerator generator, SerializationContext provider) {
         generator.writeStartArray();
-        var decimalFormat = this.decimalFormat.get();
-        generator.writeNumber(decimalFormat.format(value.getX()));
-        generator.writeNumber(decimalFormat.format(value.getY()));
+        var df = this.decimalFormat.get();
+        generator.writeNumber(df.format(value.getX()));
+        generator.writeNumber(df.format(value.getY()));
         if (!Double.isNaN(value.getZ()) && Double.isFinite(value.getZ())) {
-            generator.writeNumber(decimalFormat.format(value.getZ()));
+            generator.writeNumber(df.format(value.getZ()));
         }
         generator.writeEndArray();
     }
