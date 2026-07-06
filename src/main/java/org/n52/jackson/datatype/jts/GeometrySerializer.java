@@ -45,7 +45,7 @@ import java.util.Optional;
  */
 public class GeometrySerializer extends ValueSerializer<Geometry> {
     static final int DEFAULT_DECIMAL_PLACES = 8;
-    private final NumberFormat decimalFormat;
+    private final ThreadLocal<NumberFormat> decimalFormat;
     private final IncludeBoundingBox includeBoundingBox;
 
     /**
@@ -76,7 +76,8 @@ public class GeometrySerializer extends ValueSerializer<Geometry> {
         if (decimalPlaces < 0) {
             throw new IllegalArgumentException("decimalPlaces < 0");
         }
-        this.decimalFormat = createNumberFormat(decimalPlaces);
+
+        this.decimalFormat = ThreadLocal.withInitial(() -> createNumberFormat(decimalPlaces));
     }
 
     private NumberFormat createNumberFormat(int decimalPlaces) {
@@ -197,12 +198,13 @@ public class GeometrySerializer extends ValueSerializer<Geometry> {
         generator.writeStringProperty(Field.TYPE, type.toString());
 
         if (this.includeBoundingBox.shouldIncludeBoundingBoxFor(type) && !geometry.isEmpty()) {
+            var decimalFormat = this.decimalFormat.get();
             Envelope envelope = geometry.getEnvelopeInternal();
             generator.writeArrayPropertyStart(Field.BOUNDING_BOX);
-            generator.writeNumber(envelope.getMinX());
-            generator.writeNumber(envelope.getMinY());
-            generator.writeNumber(envelope.getMaxX());
-            generator.writeNumber(envelope.getMaxY());
+            generator.writeNumber(decimalFormat.format(envelope.getMinX()));
+            generator.writeNumber(decimalFormat.format(envelope.getMinY()));
+            generator.writeNumber(decimalFormat.format(envelope.getMaxX()));
+            generator.writeNumber(decimalFormat.format(envelope.getMaxY()));
             generator.writeEndArray();
         }
     }
@@ -238,6 +240,7 @@ public class GeometrySerializer extends ValueSerializer<Geometry> {
 
     private void serializeCoordinate(Coordinate value, JsonGenerator generator, SerializationContext provider) {
         generator.writeStartArray();
+        var decimalFormat = this.decimalFormat.get();
         generator.writeNumber(decimalFormat.format(value.getX()));
         generator.writeNumber(decimalFormat.format(value.getY()));
         if (!Double.isNaN(value.getZ()) && Double.isFinite(value.getZ())) {

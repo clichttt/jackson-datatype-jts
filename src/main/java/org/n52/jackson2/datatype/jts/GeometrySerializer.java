@@ -51,8 +51,10 @@ import java.util.Optional;
 @Deprecated(forRemoval = true)
 public class GeometrySerializer extends JsonSerializer<Geometry> {
     static final int DEFAULT_DECIMAL_PLACES = 8;
-    private final NumberFormat decimalFormat;
+
     private final IncludeBoundingBox includeBoundingBox;
+    private final ThreadLocal<NumberFormat> decimalFormat;
+
 
     /**
      * Creates a new {@link GeometrySerializer}.
@@ -81,7 +83,7 @@ public class GeometrySerializer extends JsonSerializer<Geometry> {
         if (decimalPlaces < 0) {
             throw new IllegalArgumentException("decimalPlaces < 0");
         }
-        this.decimalFormat = createNumberFormat(decimalPlaces);
+        this.decimalFormat = ThreadLocal.withInitial(() -> createNumberFormat(decimalPlaces));
     }
 
     private NumberFormat createNumberFormat(int decimalPlaces) {
@@ -212,10 +214,11 @@ public class GeometrySerializer extends JsonSerializer<Geometry> {
         if (this.includeBoundingBox.shouldIncludeBoundingBoxFor(type) && !geometry.isEmpty()) {
             Envelope envelope = geometry.getEnvelopeInternal();
             generator.writeArrayFieldStart(Field.BOUNDING_BOX);
-            generator.writeNumber(envelope.getMinX());
-            generator.writeNumber(envelope.getMinY());
-            generator.writeNumber(envelope.getMaxX());
-            generator.writeNumber(envelope.getMaxY());
+            var decimalFormat = this.decimalFormat.get();
+            generator.writeNumber(decimalFormat.format(envelope.getMinX()));
+            generator.writeNumber(decimalFormat.format(envelope.getMinY()));
+            generator.writeNumber(decimalFormat.format(envelope.getMaxX()));
+            generator.writeNumber(decimalFormat.format(envelope.getMaxY()));
             generator.writeEndArray();
         }
     }
@@ -254,6 +257,7 @@ public class GeometrySerializer extends JsonSerializer<Geometry> {
 
     private void serializeCoordinate(Coordinate value, JsonGenerator generator, SerializerProvider provider)
             throws IOException {
+        var decimalFormat = this.decimalFormat.get();
         generator.writeStartArray();
         generator.writeNumber(decimalFormat.format(value.getX()));
         generator.writeNumber(decimalFormat.format(value.getY()));
